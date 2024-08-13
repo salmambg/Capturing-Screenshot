@@ -10,15 +10,20 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 
 @Service
 public class ScreenShotService {
-    @Value("${chrome.driver.path}")
-    private String chromeDriverPath;
+
+    @Value("${chrome.driver.resource.path}")
+    private String chromeDriverResourcePath;
 
     public void takeScreenshot(String url, String outputPath)throws IOException {
 
-        System.setProperty("webdriver.chrome.driver", chromeDriverPath);
+        File chromeDriverFile = extractChromeDriver();
+        System.setProperty("webdriver.chrome.driver", chromeDriverFile.getAbsolutePath());
 
         ChromeOptions options = new ChromeOptions();
         options.addArguments("--headless");
@@ -38,6 +43,21 @@ public class ScreenShotService {
         } finally {
             driver.quit();
         }
+    }
+    private File extractChromeDriver() throws IOException {
+        // Load ChromeDriver from resources
+        InputStream inputStream = getClass().getResourceAsStream(chromeDriverResourcePath);
+        if (inputStream == null) {
+            throw new IOException("ChromeDriver not found in resources!");
+        }
+
+        // Create a temporary file for ChromeDriver
+        File tempFile = File.createTempFile("chromedriver", ".exe");
+        tempFile.deleteOnExit();
+
+        // Copy the ChromeDriver from the resources to the temporary file
+        Files.copy(inputStream, tempFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        return tempFile;
     }
 }
 
